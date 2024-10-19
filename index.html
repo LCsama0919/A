@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Viewer</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
+        import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/loaders/GLTFLoader.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Add light sources
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // White ambient light
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+
+        // Load the model
+        const loader = new GLTFLoader();
+        loader.load('model/gang.glb', function (gltf) {
+            scene.add(gltf.scene);
+
+            // Traverse the model and set up interactivity
+            gltf.scene.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.color.set(0xff0000); // Set initial color to red
+                }
+            });
+        }, undefined, function (error) {
+            console.error(error);
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function handleInteraction(event) {
+            // Handle touch events
+            if (event.touches) {
+                mouse.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (event.touches[0].clientY / window.innerHeight) * 2 + 1;
+            } else {
+                // Handle mouse events
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true); // true means check all child objects
+
+            if (intersects.length > 0) {
+                console.log('Clicked on:', intersects[0].object.name); // Log the name of the clicked object
+                intersects[0].object.material.color.set(Math.random() * 0xffffff); // Change color randomly
+            } else {
+                console.log('No intersection'); // No intersection detected
+            }
+        }
+
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction); // Handle touch events
+
+        camera.position.z = 5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>
